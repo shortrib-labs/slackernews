@@ -51,12 +51,14 @@ jobs:
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
 
-  release:
+  unstable:
     runs-on: ubuntu-22.04
     needs:
       - build
     permissions:
       contents: write
+    outputs:
+      release-sequence: ${{ steps.release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,9 +103,52 @@ jobs:
             --version=${{ steps.get_version.outputs.version-without-v }} \
             -d ./repository
 
+      # Release the chart using the Replicated Platform
+      - name: Create the unstable release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        id: release
+        with:
+          app-slug: ${{ inputs.slug }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          promote-channel: "Unstable"
+          version: ${{ inputs.version }}
+ 
+  beta:
+    needs: 
+      - release
+    steps:
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        uses: replicatedhq/action-kots-release@configurable-endpoint
+        id: release
+        with:
+          app-slug: ${{ secrest.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          channel-to: beta
+          version: ${{ inputs.version }}
+
+  stable:
+    needs: 
+      - beta
+    permissions:
+      contents: write
+    steps:
+      - name: Promote the release to stable
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        uses: replicatedhq/action-kots-release@configurable-endpoint
+        id: release
+        with:
+          app-slug: ${{ secrest.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          channel-to: stable
+          version: ${{ inputs.version }}
+
+      # Updates the old chart repository to locate the new chart releases
       - id: index-chart-repo
         run: |
-          helm repo index repository --url https://shortrib-labs.github.io/charts
+          helm repo index repository --url https://shortrib-labs.github.io/charts --merge repository/index.yaml
 
       - id: commit-repostiory
         uses: stefanzweifel/git-auto-commit-action@v4
