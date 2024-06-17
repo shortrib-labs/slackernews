@@ -147,7 +147,7 @@ jobs:
           channel-to: beta
           release-version: ${{ needs.release.outputs.version }}
 
-  release:
+  stable:
     runs-on: ubuntu-22.04
     needs: 
       - release
