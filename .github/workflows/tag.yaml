@@ -74,20 +74,16 @@ jobs:
         id: install
 
       - name: Update the values.yaml with the image path
-        uses: jacobtomlinson/gha-find-replace@v2
+        id: update-slackernews-image
+        uses: mikefarah/yq@master
         with:
-          include: 'chart/slackernews/values.yaml'
-          find: '$IMAGE'
-          replace: '${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}'
-          regex: false
+          cmd: yq -i '.images.slackernews.repository = "${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}"' source/chart/slackernews/values.yaml
 
-      - name: Update the values.yaml with the nginx image path
-        uses: jacobtomlinson/gha-find-replace@v2
+      - name: Update the values.yaml with the image path
+        id: update-nginx-image
+        uses: mikefarah/yq@master
         with:
-          include: 'chart/slackernews/values.yaml'
-          find: '$NGINX_IMAGE'
-          replace: '${{ secrets.REGISTRY_NAMESPACE }}/slackernews-nginx:${{ steps.get_version.outputs.version-without-v }}'
-          regex: false
+          cmd: yq -i '.images.nginx.repository = "nginx:1.25.3"' source/chart/slackernews/values.yaml
 
       - id: package-helm-chart
         run: |
