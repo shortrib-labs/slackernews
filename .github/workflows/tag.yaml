@@ -126,6 +126,7 @@ jobs:
         with:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.unstable.outputs.release-sequence }}
           channel-to: beta
           version: ${{ inputs.version }}
 
@@ -142,6 +143,7 @@ jobs:
         with:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.unstable.outputs.release-sequence }}
           channel-to: stable
           version: ${{ inputs.version }}
 
