@@ -123,7 +123,7 @@ jobs:
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
         with:
-          app-slug: ${{ secrest.REPLICATED_APP }}
+          app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           channel-to: beta
           version: ${{ inputs.version }}
@@ -138,7 +138,7 @@ jobs:
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
         with:
-          app-slug: ${{ secrest.REPLICATED_APP }}
+          app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           channel-to: stable
           version: ${{ inputs.version }}
