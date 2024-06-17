@@ -151,7 +151,7 @@ jobs:
         id: create-cluster
         uses: replicatedhq/replicated-actions/create-cluster@v1
         with:
-          api-token: ${{ secrets.REPLICATED_TOKEN }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           kubernetes-distribution: ${{ matrix.cluster.distribution }}
           kubernetes-version: ${{ matrix.cluster.version }}
           cluster-name: slackernews-${{ matrix.cluster.distribution }}-${{ matrix.cluster.version }}-${{ steps.vars.outputs.sha_short }}
@@ -198,7 +198,7 @@ jobs:
         uses: replicatedhq/replicated-actions/remove-cluster@v1
         with:
           cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
-          api-token: ${{ secrets.REPLICATED_TOKEN }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
 
       - name: Archive Customer
         id: archive-customer
