@@ -161,7 +161,7 @@ jobs:
         id: create-customer
         uses: replicatedhq/replicated-actions/create-customer@v1
         with:
-          app-slug: ${{ steps.application.outputs.slug }}
+          app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           customer-name: ${{ steps.short-sha.outputs.hash }}-${{ matrix.cluster.distribution }}-${{ matrix.cluster.version }}
           channel-slug: unstable
