@@ -117,7 +117,7 @@ jobs:
   beta:
     runs-on: ubuntu-22.04
     needs: 
-      - release
+      - unstable
     steps:
       # Release the chart using the Replicated Platform
       - name: Promote the unstable release to beta
@@ -129,7 +129,7 @@ jobs:
           channel-to: beta
           version: ${{ inputs.version }}
 
-  stable:
+  release:
     runs-on: ubuntu-22.04
     needs: 
       - beta
