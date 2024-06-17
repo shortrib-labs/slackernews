@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
         uses: docker/login-action@v2
@@ -57,23 +57,18 @@ jobs:
       - build
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version-without-v }} 
+      release-sequence: ${{ steps.release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: source
 
-      - uses: actions/checkout@v4
-        with:
-          repository: shortrib-labs/charts
-          path: repository
-          ref: main
-          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
-
-
       - id: get_version
-        uses: battila7/get-version-action@v2
+        uses: battila7/get-version-action@v2.3.0
 
-      - uses: azure/setup-helm@v1
+      - uses: azure/setup-helm@v4
         with:
           version: "3.9.0"
         id: install
@@ -101,13 +96,64 @@ jobs:
             --version=${{ steps.get_version.outputs.version-without-v }} \
             -d ./repository
 
-      - id: index-chart-repo
-        run: |
-          helm repo index repository --url https://shortrib-labs.github.io/charts
-
-      - id: commit-repostiory
-        uses: stefanzweifel/git-auto-commit-action@v4
+      # Release the chart using the Replicated Platform
+      - name: Create the unstable release
+        uses: replicatedhq/replicated-actions/create-release@v1
+        id: release
         with:
-          repository: repository
-          commit_message: "Release chart version ${{ steps.get_version.outputs.version-without-v }}"
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
+ 
+  unstable:
+    runs-on: ubuntu-22.04
+    needs: 
+      - release
+    steps:
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        id: release
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.release.outputs.release-sequence }}
+          channel-to: unstable
+          release-version: ${{ needs.release.outputs.version }}
+
+  beta:
+    runs-on: ubuntu-22.04
+    needs: 
+      - release
+      - unstable
+    steps:
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        id: release
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.release.outputs.release-sequence }}
+          channel-to: beta
+          release-version: ${{ needs.release.outputs.version }}
+
+  stable:
+    runs-on: ubuntu-22.04
+    needs: 
+      - release
+      - beta
+    permissions:
+      contents: write
+    steps:
+      - name: Promote the release to stable
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        id: release
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.release.outputs.release-sequence }}
+          channel-to: stable
+          release-version: ${{ needs.release.outputs.version }}
 
