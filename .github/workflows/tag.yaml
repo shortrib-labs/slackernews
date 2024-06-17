@@ -108,7 +108,7 @@ jobs:
         uses: replicatedhq/replicated-actions/create-release@v1
         id: release
         with:
-          app-slug: ${{ inputs.slug }}
+          app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
           promote-channel: "Unstable"
