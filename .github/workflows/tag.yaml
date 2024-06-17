@@ -125,21 +125,29 @@ jobs:
           channel-to: unstable
           release-version: ${{ needs.release.outputs.version }}
 
+  get-customer-instances:
+    outputs:
+      matrix: ${{ steps.get-customer-instances.outputs.matrix}}
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Get Customer Instances
+        id: get-customer-instances
+        uses: replicatedhq/replicated-actions/get-customer-instances@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+
   compatibility:
     runs-on: ubuntu-22.04
     needs:
-      - release
+      - customer-isntances
       - unstable
+    if: ${{ !contains(needs.get-customer-instances.outputs.matrix, '[]') }}
     strategy:
       fail-fast: false
       matrix:
-        cluster:
-          - { distribution: openshift, version: v4.15.0-okd }
-          - { distribution: eks, version: v1.29 }
-          - { distribution: gke, version: v1.29 }
-          - { distribution: aks, version: v1.29 }
-          - { distribution: kind, version: v1.30 }
-
+        cluster: ${{ fromJson(needs.get-customer-instances.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
