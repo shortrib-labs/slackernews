@@ -51,7 +51,7 @@ jobs:
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
 
-  unstable:
+  release:
     runs-on: ubuntu-22.04
     needs:
       - build
@@ -112,12 +112,28 @@ jobs:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
-          promote-channel: "Unstable"
           version: ${{ needs.release.outputs.version }}
  
+  unstable:
+    runs-on: ubuntu-22.04
+    needs: 
+      - release
+    steps:
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        id: release
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          release-sequence: ${{ needs.unstable.outputs.release-sequence }}
+          channel-to: unstable
+          release-version: ${{ needs.release.outputs.version }}
+
   beta:
     runs-on: ubuntu-22.04
     needs: 
+      - release
       - unstable
     steps:
       # Release the chart using the Replicated Platform
@@ -134,6 +150,7 @@ jobs:
   release:
     runs-on: ubuntu-22.04
     needs: 
+      - release
       - beta
     permissions:
       contents: write
