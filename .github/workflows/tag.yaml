@@ -127,6 +127,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - release
+      - unstable
     strategy:
       fail-fast: false
       matrix:
