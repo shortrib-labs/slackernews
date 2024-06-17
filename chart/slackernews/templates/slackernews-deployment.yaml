@@ -14,10 +14,6 @@ spec:
       labels:
         app: slackernews
     spec:
-      {{ if hasKey ((.Values.global).replicated) "dockerconfigjson" }}
-      imagePullSecrets:
-        - name: replicated-pull-secret
-      {{ end }}
       containers:
       - image: {{ .Values.images.slackernews.repository }}
         imagePullPolicy: {{ .Values.images.slackernews.pullPolicy }}
