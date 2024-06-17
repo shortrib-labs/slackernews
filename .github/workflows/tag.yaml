@@ -72,7 +72,7 @@ jobs:
           ref: main
           token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
 
-      - uses: actions/checkout@v4
+     - uses: actions/checkout@v4
         with:
           repository: shortrib-labs/charts
           path: repository
@@ -132,7 +132,6 @@ jobs:
           channel-to: unstable
           release-version: ${{ needs.release.outputs.version }}
 
-<<<<<<< HEAD
   get-customer-instances:
     outputs:
       matrix: ${{ steps.get-customer-instances.outputs.matrix}}
