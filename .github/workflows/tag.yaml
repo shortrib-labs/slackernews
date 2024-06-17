@@ -115,6 +115,7 @@ jobs:
           version: ${{ inputs.version }}
  
   beta:
+    runs-on: ubuntu-22.04
     needs: 
       - release
     steps:
@@ -129,6 +130,7 @@ jobs:
           version: ${{ inputs.version }}
 
   stable:
+    runs-on: ubuntu-22.04
     needs: 
       - beta
     permissions:
