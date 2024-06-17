@@ -37,12 +37,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 
 
 {{- define "slackernews.persistence.enabled" -}}
-{{- \$licenseType := "prod" -}}
-{{- \$postgresEnabled := .Values.postgres.enabled -}}
+{{- $licenseType := "prod" -}}
+{{- $postgresEnabled := .Values.postgres.enabled -}}
 {{- if hasKey .Values "global" -}}
   {{- if hasKey .Values.global "replicated" -}}
     {{- if hasKey .Values.global.replicated "licenseType" -}}
-      {{- \$licenseType = .Values.global.replicated.licenseType -}}
+      {{- $licenseType = .Values.global.replicated.licenseType -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
