@@ -132,6 +132,7 @@ jobs:
           channel-to: unstable
           release-version: ${{ needs.release.outputs.version }}
 
+<<<<<<< HEAD
   get-customer-instances:
     outputs:
       matrix: ${{ steps.get-customer-instances.outputs.matrix}}
