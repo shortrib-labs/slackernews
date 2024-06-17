@@ -22,5 +22,9 @@ spec:
               message: "Can access the Slack API"
           - fail:
               when: "false"
-              message: "Cannot access the Slack API. Check that the server can reach the internet and check [status.slack.com](https://status.slack.com)."
+              message: |
+                Cannot access the Slack API. Check your firewall settings,
+                network policies, and the [Slack status
+                page](https://status.slack.com).
+
 {{- end -}}
