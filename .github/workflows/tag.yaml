@@ -161,6 +161,7 @@ jobs:
           customer-name: ${{ steps.short-sha.outputs.hash }}-${{ matrix.cluster.distribution }}-${{ matrix.cluster.version }}
           channel-slug: unstable
           customer-email: ${{ steps.short-sha.outputs.hash }}@shortrib.io
+          is-kots-install-enabled: false
           expires-in: 14
 
       - id: helm-install
@@ -190,6 +191,7 @@ jobs:
       - name: Delete Cluster
         id: delete-cluster
         if: always()
+        continue-on-error: true # It could be that the cluster is already removed
         uses: replicatedhq/replicated-actions/remove-cluster@v1
         with:
           cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
