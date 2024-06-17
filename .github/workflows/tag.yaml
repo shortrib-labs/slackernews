@@ -176,6 +176,7 @@ jobs:
           namespace: slackernews
           chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/slackernews
           version: ${{ needs.release.outputs.version }}
+          helm-path: helm
           kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
           registry-username: ${{ steps.short-sha.outputs.hash }}@shortrib.io
           registry-password: ${{ steps.create-customer.outputs.license-id }}
