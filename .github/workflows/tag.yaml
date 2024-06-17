@@ -58,6 +58,7 @@ jobs:
     permissions:
       contents: write
     outputs:
+      version: ${{ steps.get_version.outputs.version-without-v }} 
       release-sequence: ${{ steps.release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +113,7 @@ jobs:
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
           promote-channel: "Unstable"
-          version: ${{ inputs.version }}
+          version: ${{ needs.release.outputs.version }}
  
   beta:
     runs-on: ubuntu-22.04
@@ -128,7 +129,7 @@ jobs:
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           release-sequence: ${{ needs.unstable.outputs.release-sequence }}
           channel-to: beta
-          version: ${{ inputs.version }}
+          release-version: ${{ needs.release.outputs.version }}
 
   release:
     runs-on: ubuntu-22.04
@@ -145,7 +146,7 @@ jobs:
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           release-sequence: ${{ needs.unstable.outputs.release-sequence }}
           channel-to: stable
-          version: ${{ inputs.version }}
+          release-version: ${{ needs.release.outputs.version }}
 
       # Updates the old chart repository to locate the new chart releases
       - id: index-chart-repo
