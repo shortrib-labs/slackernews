@@ -169,7 +169,7 @@ jobs:
         with:
           name: slackernews
           namespace: slackernews
-          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/slackernews
+          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/unstable/slackernews
           version: ${{ needs.release.outputs.version }}
           helm-path: helm
           kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
