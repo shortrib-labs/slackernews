@@ -65,14 +65,6 @@ jobs:
         with:
           path: source
 
-      - uses: actions/checkout@v4
-        with:
-          repository: shortrib-labs/charts
-          path: repository
-          ref: main
-          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
-
-
       - id: get_version
         uses: battila7/get-version-action@v2
 
@@ -155,6 +147,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      # check out the original chart repository
+      - uses: actions/checkout@v4
+        with:
+          repository: shortrib-labs/charts
+          path: repository
+          ref: main
+          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
+
+      - uses: azure/setup-helm@v1
+        with:
+          version: "3.9.0"
+        id: install
+
       - name: Promote the release to stable
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
@@ -165,11 +170,26 @@ jobs:
           channel-to: stable
           release-version: ${{ needs.release.outputs.version }}
 
-      # Updates the old chart repository to locate the new chart releases
+  
+      # package the chart into the repository to build the index
+      - id: package-helm-chart
+        run: |
+          helm package -u source/chart/slackernews  \
+            --app-version=${{ needs.release.outputs.version }} \
+            --version=${{ needs.release.outputs.version }} \
+            -d ./repository
+
+      # Update the old chart repository to locate the chart release in the Replicated registry
       - id: index-chart-repo
         run: |
-          helm repo index repository --url https://shortrib-labs.github.io/charts --merge repository/index.yaml
+          helm repo index repository --url oci://charts.shortrib.io/slackernews-tetra --merge repository/index.yaml
 
+      # Remove the tarball to keep it protected
+      - id: cleanup
+        run: |
+          rm -f repository/slackernews-${{ needs.release.outputs.version }}.tgz
+
+      # commit repository changes
       - id: commit-repostiory
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
