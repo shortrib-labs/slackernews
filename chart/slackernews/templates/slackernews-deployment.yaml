@@ -75,6 +75,31 @@ spec:
         - name: db-volume
           mountPath: /db
           readOnly: false
+      initContainers:
+      - name: license-check
+        image: ghcr.io/crdant/replicated-license-enforcer:latest
+        command: [ "/enforcer" ]
+        args: ["--recheck", "4h" ]    # any valid Go duration
+        env:
+          - name: REPLICATED_SDK_ENDPOINT
+            value: http://replicated:3000
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+        imagePullPolicy: IfNotPresent
+        restartPolicy: Always
       volumes:
       - name: db-volume
         emptyDir: {}      
