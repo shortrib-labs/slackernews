@@ -14,6 +14,7 @@ spec:
       labels:
         app: slackernews
     spec:
+      serviceAccountName: licensed-application
       containers:
       - image: {{ .Values.images.slackernews.repository }}
         imagePullPolicy: {{ .Values.images.slackernews.pullPolicy }}
