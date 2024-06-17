@@ -8,6 +8,7 @@ import { loadSession } from "../lib/session";
 import { listTopLinks } from "../lib/link";
 import { getParam } from "../lib/param";
 import { listAvailableUserGroups, listUsersInUserGroup } from "../lib/slack";
+import { sendMetrics } from "../lib/metrics/metric";
 import envConfig from "../lib/env-config";
 
 export default function Page({ renderableLinks, nextPageUrl, startCount, isSuperAdmin, isDebugMode }) {
@@ -85,6 +86,8 @@ export async function getServerSideProps(ctx) {
       `/?t=${duration}&p=${parseInt(page) + 1}` :
       `/?p=${parseInt(page) + 1}`
     : null;
+
+  await sendMetrics();
 
   const {showChromePluginTab} = envConfig();
 
