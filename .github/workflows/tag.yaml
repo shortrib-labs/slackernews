@@ -126,7 +126,6 @@ jobs:
   compatibility:
     runs-on: ubuntu-22.04
     needs:
-      - chart
       - release
     strategy:
       fail-fast: false
