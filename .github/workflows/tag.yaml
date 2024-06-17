@@ -121,7 +121,6 @@ jobs:
       # Release the chart using the Replicated Platform
       - name: Promote the unstable release to beta
         uses: replicatedhq/replicated-actions/promote-release@v1
-        uses: replicatedhq/action-kots-release@configurable-endpoint
         id: release
         with:
           app-slug: ${{ secrest.REPLICATED_APP }}
@@ -137,7 +136,6 @@ jobs:
     steps:
       - name: Promote the release to stable
         uses: replicatedhq/replicated-actions/promote-release@v1
-        uses: replicatedhq/action-kots-release@configurable-endpoint
         id: release
         with:
           app-slug: ${{ secrest.REPLICATED_APP }}
