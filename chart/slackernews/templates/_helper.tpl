@@ -46,6 +46,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
     {{- end -}}
   {{- end -}}
 {{- end -}}
-{{- and (ne \$licenseType "trial") \$postgresEnabled -}}
+{{- and (ne $licenseType "trial") $postgresEnabled -}}
 {{- end }}
 
