@@ -152,4 +152,3 @@ jobs:
           release-sequence: ${{ needs.release.outputs.release-sequence }}
           channel-to: stable
           release-version: ${{ needs.release.outputs.version }}
-
