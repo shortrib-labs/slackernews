@@ -65,6 +65,13 @@ jobs:
         with:
           path: source
 
+      - uses: actions/checkout@v4
+        with:
+          repository: shortrib-labs/charts
+          path: repository
+          ref: main
+          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
+
       - id: get_version
         uses: battila7/get-version-action@v2.3.0
 
