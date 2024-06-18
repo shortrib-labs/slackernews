@@ -58,19 +58,12 @@ jobs:
     permissions:
       contents: write
     outputs:
-      version: ${{ steps.get_version.outputs.version-without-v }} 
+      version: ${{ steps.get_version.outputs.version-without-v }}
       release-sequence: ${{ steps.release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: source
-
-      - uses: actions/checkout@v4
-        with:
-          repository: shortrib-labs/charts
-          path: repository
-          ref: main
-          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
 
       - id: get_version
         uses: battila7/get-version-action@v2.3.0
@@ -84,13 +77,13 @@ jobs:
         id: update-slackernews-image
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.images.slackernews.repository = "${{ secrets.REPLICATED_PROXY_REGISTRY_CNAME }}/proxy/${{ secrets.REPLICATED_APP }}/${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}"' source/chart/slackernews/values.yaml
+          cmd: yq -i '.images.slackernews.repository = "${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}"' source/chart/slackernews/values.yaml
 
       - name: Update the values.yaml with the image path
         id: update-nginx-image
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.images.nginx.repository = "${{ secrets.REPLICATED_PROXY_REGISTRY_CNAME }}/proxy/${{ secrets.REPLICATED_APP }}/library/nginx:1.25.3"' source/chart/slackernews/values.yaml
+          cmd: yq -i '.images.nginx.repository = "nginx:1.25.3"' source/chart/slackernews/values.yaml
 
       - id: package-helm-chart
         run: |
@@ -100,7 +93,7 @@ jobs:
             -d ./repository
 
       # Release the chart using the Replicated Platform
-      - name: Create the unstable release
+      - name: Create the release
         uses: replicatedhq/replicated-actions/create-release@v1
         id: release
         with:
@@ -125,11 +118,100 @@ jobs:
           channel-to: unstable
           release-version: ${{ needs.release.outputs.version }}
 
+  compatibility:
+    runs-on: ubuntu-22.04
+    needs:
+      - release
+      - unstable
+    strategy:
+      fail-fast: false
+      matrix:
+        cluster:
+          - { distribution: openshift, version: v4.15.0-okd }
+          - { distribution: eks, version: v1.29 }
+          - { distribution: gke, version: v1.29 }
+          - { distribution: aks, version: v1.29 }
+          - { distribution: kind, version: v1.30 }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate a Short SHA
+        id: short-sha
+        run: |
+          short_sha=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "hash=${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Cluster
+        id: create-cluster
+        uses: replicatedhq/replicated-actions/create-cluster@v1
+        with:
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          kubernetes-distribution: ${{ matrix.cluster.distribution }}
+          kubernetes-version: ${{ matrix.cluster.version }}
+          cluster-name: slackernews-${{ matrix.cluster.distribution }}-${{ matrix.cluster.version }}-${{ steps.vars.outputs.sha_short }}
+          ttl: 4h
+
+      - name: Create Customer 
+        id: create-customer
+        uses: replicatedhq/replicated-actions/create-customer@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          customer-name: ${{ steps.short-sha.outputs.hash }}-${{ matrix.cluster.distribution }}-${{ matrix.cluster.version }}
+          channel-slug: unstable
+          customer-email: ${{ steps.short-sha.outputs.hash }}@shortrib.io
+          is-kots-install-enabled: false
+          expires-in: 14
+
+      - id: helm-install
+        uses: replicatedhq/replicated-actions/helm-install@v1
+        with:
+          name: slackernews
+          namespace: slackernews
+          chart: oci://registry.replicated.com/${{ secrets.REPLICATED_APP }}/unstable/slackernews
+          version: ${{ needs.release.outputs.version }}
+          helm-path: helm
+          kubeconfig: ${{ steps.create-cluster.outputs.cluster-kubeconfig }}
+          registry-username: ${{ steps.short-sha.outputs.hash }}@shortrib.io
+          registry-password: ${{ steps.create-customer.outputs.license-id }}
+
+      - name: save the kubeconfig as a tmp file, saving the filename as an output
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ steps.create-cluster.outputs.cluster-kubeconfig }}" > ~/.kube/config
+
+      - name: wait for the slackernews pod to be running
+        run: |
+          kubectl wait --for=condition=Ready pod -l app=slackernews -n slackernews --timeout=300s
+
+      - name: wait for the replicated pod to be running
+        run: |
+          kubectl wait --for=condition=available --timeout=60s deployment/replicated  -n slackernews --timeout=300s
+
+      - name: Delete Cluster
+        id: delete-cluster
+        if: always()
+        continue-on-error: true # It could be that the cluster is already removed
+        uses: replicatedhq/replicated-actions/remove-cluster@v1
+        with:
+          cluster-id: ${{ steps.create-cluster.outputs.cluster-id }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+
+      - name: Archive Customer
+        id: archive-customer
+        if: always()
+        continue-on-error: true # It could be that the customer is already removed
+        uses: replicatedhq/replicated-actions/archive-customer@v1
+        with:
+          customer-id:  ${{ steps.create-customer.outputs.customer-id }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+
   beta:
     runs-on: ubuntu-22.04
     needs: 
       - release
-      - unstable
+      - compatibility
     steps:
       # Release the chart using the Replicated Platform
       - name: Promote the unstable release to beta
@@ -138,6 +220,8 @@ jobs:
         with:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
           release-sequence: ${{ needs.release.outputs.release-sequence }}
           channel-to: beta
           release-version: ${{ needs.release.outputs.version }}
@@ -147,15 +231,17 @@ jobs:
     needs: 
       - release
       - beta
-    permissions:
-      contents: write
     steps:
-      - name: Promote the release to stable
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
         with:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
           release-sequence: ${{ needs.release.outputs.release-sequence }}
           channel-to: stable
           release-version: ${{ needs.release.outputs.version }}
+
