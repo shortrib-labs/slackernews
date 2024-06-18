@@ -16,10 +16,11 @@ spec:
         checkName: Is this a supported Kubernetes distribution?
         outcomes:
           - fail:
-              when: "== openShiftt"
+              when: "== openShift"
               message: OpenShift is a supported distribution
           - pass:
               message: You are instaling to a supported distribution
+
     - textAnalyze:
         checkName: Slack Accessible
         fileName: slack.json
