@@ -58,19 +58,12 @@ jobs:
     permissions:
       contents: write
     outputs:
-      version: ${{ steps.get_version.outputs.version-without-v }} 
+      version: ${{ steps.get_version.outputs.version-without-v }}
       release-sequence: ${{ steps.release.outputs.release-sequence }}
     steps:
       - uses: actions/checkout@v4
         with:
           path: source
-
-      - uses: actions/checkout@v4
-        with:
-          repository: shortrib-labs/charts
-          path: repository
-          ref: main
-          token: ${{ secrets.PRIVILEGED_GITHUB_TOKEN }}
 
       - id: get_version
         uses: battila7/get-version-action@v2.3.0
@@ -98,7 +91,7 @@ jobs:
             --app-version=${{ steps.get_version.outputs.version-without-v }} \
             --version=${{ steps.get_version.outputs.version-without-v }} \
             -d ./repository
-
+        
       # Release the chart using the Replicated Platform
       - name: Create the release
         uses: replicatedhq/replicated-actions/create-release@v1
@@ -237,21 +230,23 @@ jobs:
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
           chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
           version: ${{ needs.release.outputs.version }}
+          channel-to: beta
+          release-version: ${{ needs.release.outputs.version }}
 
   stable:
     runs-on: ubuntu-22.04
     needs: 
       - release
       - beta
-    permissions:
-      contents: write
     steps:
-      - name: Promote the release to stable
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
         with:
           app-slug: ${{ secrets.REPLICATED_APP }}
           api-token: ${{ secrets.REPLICATED_API_TOKEN }}
-          release-sequence: ${{ needs.release.outputs.release-sequence }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
           channel-to: stable
           release-version: ${{ needs.release.outputs.version }}
