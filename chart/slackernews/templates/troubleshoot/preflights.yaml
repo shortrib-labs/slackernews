@@ -12,6 +12,15 @@ spec:
         get:
           url: https://api.slack.com/methods/api.test
   analyzers:
+    - distribution:
+        checkName: Is this a supported Kubernetes distribution?
+        outcomes:
+          - fail:
+              when: "== openShift"
+              message: OpenShift is a supported distribution
+          - pass:
+              message: You are instaling to a supported distribution
+
     - textAnalyze:
         checkName: Slack Accessible
         fileName: slack.json
