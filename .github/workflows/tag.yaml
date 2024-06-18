@@ -223,6 +223,24 @@ jobs:
         uses: replicatedhq/replicated-actions/promote-release@v1
         id: release
         with:
-          repository: repository
-          commit_message: "Release chart version ${{ steps.get_version.outputs.version-without-v }}"
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
+
+  stable:
+    runs-on: ubuntu-22.04
+    needs: 
+      - release
+      - beta
+    steps:
+      # Release the chart using the Replicated Platform
+      - name: Promote the unstable release to beta
+        uses: replicatedhq/replicated-actions/promote-release@v1
+        id: release
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+          chart: ./repository/slackernews-${{ steps.get_version.outputs.version-without-v }}.tgz
+          version: ${{ needs.release.outputs.version }}
 
