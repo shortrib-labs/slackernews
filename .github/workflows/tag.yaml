@@ -77,13 +77,13 @@ jobs:
         id: update-slackernews-image
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.images.slackernews.repository = "${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}"' source/chart/slackernews/values.yaml
+          cmd: yq -i '.images.slackernews.repository = "${{ secrets.REPLICATED_PROXY_REGISTRY_CNAME }}/proxy/${{ secrets.REPLICATED_APP }}/${{ secrets.REGISTRY_NAMESPACE }}/slackernews-web:${{ steps.get_version.outputs.version-without-v }}"' source/chart/slackernews/values.yaml
 
       - name: Update the values.yaml with the image path
         id: update-nginx-image
         uses: mikefarah/yq@master
         with:
-          cmd: yq -i '.images.nginx.repository = "nginx:1.25.3"' source/chart/slackernews/values.yaml
+          cmd: yq -i '.images.nginx.repository = "${{ secrets.REPLICATED_PROXY_REGISTRY_CNAME }}/proxy/${{ secrets.REPLICATED_APP }}/library/nginx:1.25.3"' source/chart/slackernews/values.yaml
 
       - id: package-helm-chart
         run: |
@@ -91,7 +91,7 @@ jobs:
             --app-version=${{ steps.get_version.outputs.version-without-v }} \
             --version=${{ steps.get_version.outputs.version-without-v }} \
             -d ./repository
-
+        
       # Release the chart using the Replicated Platform
       - name: Create the release
         uses: replicatedhq/replicated-actions/create-release@v1
@@ -118,21 +118,29 @@ jobs:
           channel-to: unstable
           release-version: ${{ needs.release.outputs.version }}
 
+  get-customer-instances:
+    outputs:
+      matrix: ${{ steps.get-customer-instances.outputs.matrix}}
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Get Customer Instances
+        id: get-customer-instances
+        uses: replicatedhq/replicated-actions/get-customer-instances@v1
+        with:
+          app-slug: ${{ secrets.REPLICATED_APP }}
+          api-token: ${{ secrets.REPLICATED_API_TOKEN }}
+
   compatibility:
     runs-on: ubuntu-22.04
     needs:
-      - release
+      - get-customer-instances
       - unstable
+    if: ${{ !contains(needs.get-customer-instances.outputs.matrix, '[]') }}
     strategy:
       fail-fast: false
       matrix:
-        cluster:
-          - { distribution: openshift, version: v4.15.0-okd }
-          - { distribution: eks, version: v1.29 }
-          - { distribution: gke, version: v1.29 }
-          - { distribution: aks, version: v1.29 }
-          - { distribution: kind, version: v1.30 }
-
+        cluster: ${{ fromJson(needs.get-customer-instances.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -244,4 +252,3 @@ jobs:
           release-sequence: ${{ needs.release.outputs.release-sequence }}
           channel-to: stable
           release-version: ${{ needs.release.outputs.version }}
-
